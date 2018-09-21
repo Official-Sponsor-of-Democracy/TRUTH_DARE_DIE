@@ -1,8 +1,10 @@
+/* eslint-disable */
 import React from 'react';
 import axios from 'axios';
 import styled from 'styled-components';
 import { LoserPage } from './loserpage.jsx';
 import { WinnerPage } from './winnerpage.jsx';
+import { HomePage } from './homepage.jsx';
 
 const Title = styled.h1`
   font-family: Nosifer;
@@ -133,6 +135,7 @@ class GameRoom extends React.Component {
     this.userSelectDare = this.userSelectDare.bind(this);
     this.userSelectTruth = this.userSelectTruth.bind(this);
   }
+
   componentDidMount() {
     this.props.socket.on('sentMessage', (message) => {
       this.setState({ messageHistory: [...this.state.messageHistory, message] });
@@ -168,6 +171,8 @@ class GameRoom extends React.Component {
       this.setState({ hasVoted: false, winner: true });
     });
   }
+
+  // make a function for a user to send message
   userSendMessage(event) {
     let message;
     if (typeof event === 'string') {
@@ -175,13 +180,15 @@ class GameRoom extends React.Component {
     } else {
       message = `${this.props.userInfo.username}: ${event.target.sendMessage.value}`;
     }
-     
-    console.log("meessssage", this.props)
     if (this.state.messageHistory.length >= 15) {
       const messages = this.state.messageHistory;
+      // delete the first message in the messages array
       messages.splice(0, 1);
+      // push the user's message into the messages array
       messages.push(message);
+      // set the state of messages to the new edited messages array
       this.setState({ messageHistory: messages }, () => {
+        // trigger a function that sends a message to the server using the socket 
         this.props.socket.emit('sendMessage', message);
       });
       event.preventDefault();
@@ -192,6 +199,7 @@ class GameRoom extends React.Component {
       event.preventDefault();
     }
   }
+
   userSelectTruth(e) {
     axios.get('/truths').then(({ data }) => {
       this.setState({ truth: data });
@@ -201,6 +209,7 @@ class GameRoom extends React.Component {
     this.props.socket.emit('truth');
     e.preventDefault();
   }
+
   userSelectDare(e) {
     axios.get('/dares').then(({ data }) => {
       this.setState({ truth: data });
@@ -210,6 +219,7 @@ class GameRoom extends React.Component {
     this.props.socket.emit('dare');
     e.preventDefault();
   }
+
   userSelectPass(e) {
     this.setState({ hasVoted: true }, () => {
       axios.post('/votes', { vote: 'pass', username: this.props.userInfo.username })
@@ -221,8 +231,8 @@ class GameRoom extends React.Component {
     });
     e.preventDefault();
   }
+
   getTweets(e) {
-    console.log(this.props.userInfo, " twitter handle")
     axios.post('/tweet', { twitter: this.props.userInfo.twitter})
     .then((result) => {
       this.setState({ tweeted: result.data.response });
@@ -235,6 +245,7 @@ class GameRoom extends React.Component {
       console.log(err, "in get tweets req")
     });
   }
+
   userSelectFail(e) {
     this.setState({ hasVoted: true }, () => {
       axios.post('/votes', { vote: 'fail', username: this.props.userInfo.username })
@@ -246,6 +257,7 @@ class GameRoom extends React.Component {
     });
     e.preventDefault();
   }
+
   userStartGame(e) {
     this.setState({ truth: '', hasVoted: false });
     axios.post('/room', {
@@ -253,6 +265,12 @@ class GameRoom extends React.Component {
     });
     this.props.socket.emit('start');
     e.preventDefault();
+  }
+
+  leaveRoom() {
+    this.setState({
+      backToHome: true,
+    })
   }
   render() {
     console.log(this.props, "this props")
@@ -263,9 +281,14 @@ class GameRoom extends React.Component {
         <Button type="submit" name="truth" onClick={(e) => { this.userSelectTruth(e); }}>TRUTH</Button>
         <Button type="submit" name="dare" onClick={(e) => { this.userSelectDare(e); }}>DARE</Button>
       </div>);
+
+    // Define a pass or fail div
     let passOrFail;
+    // if a user has casted a vote the hasVoted property on the state should be true
     if (this.state.hasVoted) {
+      // the pass or fail div should contain text telling a voter has casted their vote
       passOrFail = (<div>Your vote has been cast!</div>);
+    // otherwise the pass or fail div should contain a pass button and a fail button for a user to cast their vote
     } else {
       passOrFail = (
         <div>
@@ -273,6 +296,7 @@ class GameRoom extends React.Component {
           <Button type="submit" name="fail" onClick={(e) => { this.userSelectFail(e); }}>FAIL</Button>
         </div>);
     }
+    // const aliveRoom 
     const aliveRoom = (
       <div>
         <TopBar className="userInfo">
@@ -282,6 +306,13 @@ class GameRoom extends React.Component {
           <Deaths>Deaths: {this.props.userInfo.death_tokens}</Deaths>
           <Wins>Wins: {this.props.userInfo.win_tokens}</Wins>
         </TopBar>
+        <div>
+          <Input type="submit" value="Leave Room" style={
+              { position: "absolute", width: "200px", height: "50px", right: 10 }
+            } 
+            onClick={(e) => this.leaveRoom(e)}
+          />
+        </div>
         <Title>Welcome to {this.props.roomname}</Title>
         <Chat htmlFor="chatRoom">
           Chats
@@ -328,12 +359,32 @@ class GameRoom extends React.Component {
           <iframe title="webChat" src="https://tokbox.com/embed/embed/ot-embed.js?embedId=91f9a6c8-1c02-486f-bb04-c24e6d922ebb&room=killroom1&iframe=true" width="800" height="640" allow="microphone; camera" />
         </Section2>
       </div>);
-    return (
-      <div>
-        {/* need to see if this works */}
-        {this.state.winner ? (<WinnerPage />) : (this.state.alive ? (aliveRoom) : (<LoserPage />))}
-      </div>
-    );
+    if (this.state.backToHome) {
+      return (<HomePage socket={this.props.socket} userInfo={this.props.userInfo} />)
+    } else {
+      return (
+        // from render return a div that displays 
+        // a winner's page if the users has won
+        // if the user is still alive, but has not won the aliveRoom template should be rendered,
+        // if the user is not a winner and is also not alive the loser page is rendered for the user
+        <div>
+          {/* need to see if this works */}
+          {/* {'Change has been made'} */}
+          {this.state.winner ? (<WinnerPage />) : (this.state.alive ? (aliveRoom) : (<LoserPage />))}
+        </div>
+      );
+    }
+    // return (
+    //   // from render return a div that displays 
+    //     // a winner's page if the users has won
+    //     // if the user is still alive, but has not won the aliveRoom template should be rendered,
+    //     // if the user is not a winner and is also not alive the loser page is rendered for the user
+    //   <div>
+    //     {/* need to see if this works */}
+    //     {/* {'Change has been made'} */}
+    //     {this.state.winner ? (<WinnerPage />) : (this.state.alive ? (aliveRoom) : (<LoserPage />))}
+    //   </div>
+    // );
   }
 }
 

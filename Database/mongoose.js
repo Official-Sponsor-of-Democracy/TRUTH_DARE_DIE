@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 // mongoose.connect('mongodb://admin:admin1@ds243728.mlab.com:43728/truthdaredie');
 mongoose.connect('mongodb://osd-user:0sdpassw0rd@ds251622.mlab.com:51622/osd');
-//
+
 const db = mongoose.connection;
 db.once('open', () => {
   console.log('connected to db');
@@ -11,7 +11,6 @@ db.once('open', () => {
 db.on('error', console.error.bind(console, 'connection error:'));
 
 const Schema = mongoose.Schema;
-
 
 // user schema
 const UserSchema = new Schema({
@@ -25,17 +24,13 @@ const UserSchema = new Schema({
   win_tokens: { type: Number, default: 0 }
 });
 
-const User = mongoose.model('User', UserSchema);
-
 // room schema
 const RoomSchema = new Schema({
   room: String,
   status: String,
-  admin: String
+  admin: String,
+  rating: String
 });
-
-const Room = mongoose.model('Room', RoomSchema);
-
 
 // Truths schema
 const TruthSchema = new Schema({
@@ -44,9 +39,6 @@ const TruthSchema = new Schema({
   truth: String
 });
 
-const Truth = mongoose.model('Truth', TruthSchema);
-
-
 // Dares Schema
 const DareSchema = new Schema({
   category: String,
@@ -54,6 +46,9 @@ const DareSchema = new Schema({
   dare_id: Number
 });
 
+const User = mongoose.model('User', UserSchema);
+const Room = mongoose.model('Room', RoomSchema);
+const Truth = mongoose.model('Truth', TruthSchema);
 const Dare = mongoose.model('Dare', DareSchema);
 
 const addTruth = (category, truth, truth_id) => {
@@ -151,7 +146,7 @@ const getUser = (request, callback) => {
 };
 
 // function that will find a room that already exists
-const findRooms = (data, callback) => {
+const findRoom = (data, callback) => {
   Room.findOne({ room: data }, (err, room) => {
     if (err) {
       callback(err, null);
@@ -161,6 +156,10 @@ const findRooms = (data, callback) => {
   });
 };
 
+// function that will get all the rooms from the database
+const getAllRooms = () => {
+  return Room.find({});
+};
 
 // function that will return a random number to use for getTruth and getDares functions
 const randomID = () => Math.floor((Math.random() * 5) + 1);
@@ -192,23 +191,24 @@ const getDare = (id, callback) => {
 };
 
 // function that will create a new room
-const createRoom = (roomName, callback) => {
-  findRooms(roomName.room, (err, response) => {
+const createRoom = (roomInfo, callback) => {
+  findRoom(roomInfo.room, (err, response) => {
     if (err) {
       callback(err);
-    } else if (response !== null && response.room === roomName.room) {
+    } else if (response !== null && response.room === roomInfo.room) {
       callback('Room already Exists!');
     } else {
       const newRoom = new Room({
-        room: roomName.room,
+        room: roomInfo.room,
         status: 'waiting',
-        admin: roomName.username
+        admin: roomInfo.username,
+        rating: roomInfo.rating
       });
       newRoom.save((error) => {
         if (error) {
           console.log(error);
         } else {
-          console.log('Room Created');
+          console.log(error);
           callback('Room Created');
         }
       });
@@ -254,7 +254,8 @@ module.exports.createRoom = createRoom;
 module.exports.randomID = randomID;
 module.exports.getTruth = getTruth;
 module.exports.getDare = getDare;
-module.exports.findRooms = findRooms;
+module.exports.findRoom = findRoom;
+module.exports.getAllRooms = getAllRooms;
 module.exports.endRoom = endRoom;
 module.exports.updateRoom = updateRoom;
 module.exports.addDeath = addDeath;

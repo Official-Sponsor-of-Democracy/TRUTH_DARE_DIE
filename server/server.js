@@ -36,6 +36,7 @@ app.use(cookieSession({
 
 app.get('/', (req, res) => {
   res.sendStatus(201);
+  console.log('made get request to /');
 });
 
 var discovery = new DiscoveryV1({
@@ -119,9 +120,12 @@ app.post('/tweet', ({ body }, res) => {
 
 // get request for login
 app.get('/users', (req, res) => {
+  console.log(req.query);
   const request = req.query;
-  // console.log(request, 'this is the request');
+  // console.log(request, 'we have a live connection');
+  // console.log('made get request to /users');
   dataSave.getUser(request, (response) => {
+    
     if (typeof response !== 'object') {
       res.status(404).send(response);
     } else {
@@ -134,6 +138,7 @@ app.get('/users', (req, res) => {
 app.post('/users', (req, res) => {
   const data = req.body;
   // console.log(data);
+  console.log('made post request to /users');
   bcrypt.hash(data.password, 10, (err, hash) => {
     if (err) {
       console.log(err);
@@ -160,9 +165,9 @@ app.post('/users', (req, res) => {
 // post request to add a room to db
 app.post('/start', (req, res) => {
   const request = req.body;
-  // console.log(request);
+  console.log(request, 'from 111');
   dataSave.createRoom(request, (response) => {
-    if (!response) {
+    if (response === 'Room already Exists!') {
       // console.log(response);
       res.status(404).send('Invalid');
     } else {
@@ -175,7 +180,7 @@ app.post('/start', (req, res) => {
 app.get('/rooms/:id', (req, res) => {
   // console.log(req.params.id);
   const response = req.params.id;
-  dataSave.findRooms(response, (err, room) => {
+  dataSave.findRoom(response, (err, room) => {
     if (err || room === null) {
       res.status(404).send('Room not available');
     } else {
@@ -184,8 +189,19 @@ app.get('/rooms/:id', (req, res) => {
   });
 });
 
+// get all the available rooms from the database
+app.get('/rooms', (req, res) => {
+  console.log('sent get to rooms');
+  dataSave.getAllRooms()
+    .then((rooms) => {
+      console.log(rooms);
+      res.send(JSON.stringify(rooms));
+    });
+});
+
 // get request to get truth from db
 app.get('/truths', (req, res) => {
+  console.log('made get request to /truths');
   dataSave.getTruth(dataSave.randomID(), (response) => {
     // console.log(`the truth is: ${response.truth}`);
     res.status(201).send(response.truth);
@@ -194,6 +210,7 @@ app.get('/truths', (req, res) => {
 
 // get request to get dare from db
 app.get('/dares', (req, res) => {
+  console.log('made get request to /dares');
   dataSave.getDare(dataSave.randomID(), (response) => {
     // console.log(`The dare is: ${response.dare}`);
     res.status(201).send(response.dare);
@@ -201,6 +218,7 @@ app.get('/dares', (req, res) => {
 });
 
 app.get('/ready', (req, res) => {
+  console.log('made get request to /ready');
   const roomName = req.headers;
   dataSave.updateRoom(roomName, (err, response) => {
     if (err) {
@@ -214,6 +232,7 @@ app.get('/ready', (req, res) => {
 app.post('/grave', (req, res) => {
   const username = req.body.username
   dataSave.addDeath(username, (err, response) => {
+    console.log('made post request to /grave');
     if (err) {
       console.error(err);
       res.send(err);
@@ -225,6 +244,7 @@ app.post('/grave', (req, res) => {
 
 app.get('/end', (req, res) => {
   const roomName = req.headers;
+  console.log('made get request to /end');
   dataSave.endRoom(roomName, (err, response) => {
     if (err) {
       res.status(404).send('Invalid room');
@@ -237,9 +257,10 @@ app.get('/end', (req, res) => {
 const players = [];
 let userVotes = { pass: 0, fail: 0, count: 0 };
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  // console.log(socket);
+  // console.log('a user connected');
   socket.on('create', (room) => {
-    console.log('Joined');
+    // console.log('Joined');
     socket.broadcast.join(room);
   });
   socket.on('start', () => {
@@ -249,7 +270,7 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('sendTruth', truth);
   });
   socket.on('sendMessage', (message) => {
-    console.log(message);
+    // console.log(message);
     socket.broadcast.emit('sentMessage', message);
   });
   socket.on('join', (room) => {
@@ -259,7 +280,7 @@ io.on('connection', (socket) => {
       socket.hasGone = false;
       socket.alive = true;
       players.push(socket.username);
-      console.log(socket.username, 'username');
+      // console.log(socket.username, 'username');
     });
     socket.broadcast.emit('join', room);
   });
