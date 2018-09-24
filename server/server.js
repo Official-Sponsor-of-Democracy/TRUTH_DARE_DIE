@@ -89,7 +89,7 @@ app.post('/tweet', ({ body }, res) => {
                 collection_id: 'b439a6dc-5f36-4ac6-83c9-4e6fe67f8ebd', query: `text:${params.screen_name}` },
               (error, data) => {
                 if (data.results.length === 0) {
-                  console.log('no result')
+                  response = res.send({ response: 'I never tweeted! Off with my head!' })
                 } else {
                   const tweetArray = data.results[0].text.replace(/\n/g, " ").split(" ");
                   tweetArray.forEach((word) => {
